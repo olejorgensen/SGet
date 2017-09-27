@@ -11,10 +11,10 @@ namespace SGet
 {
     public partial class NewDownload : Window
     {
-        private bool urlValid;
-        private bool startImmediately;
-        private MainWindow mainWindow;
-        private NumberFormatInfo numberFormat = NumberFormatInfo.InvariantInfo;
+        bool urlValid;
+        bool startImmediately;
+        MainWindow mainWindow;
+        NumberFormatInfo numberFormat = NumberFormatInfo.InvariantInfo;
 
         #region Constructor
 
@@ -34,7 +34,7 @@ namespace SGet
                 {
                     urlValid = true;
                     tbURL.Text = clipboardText;
-                    tbSaveAs.Text = tbURL.Text.Substring(tbURL.Text.LastIndexOf("/") + 1);
+                    tbSaveAs.Text = tbURL.Text.Substring(tbURL.Text.LastIndexOf("/", StringComparison.Ordinal) + 1);
                 }
             }
         }
@@ -44,9 +44,9 @@ namespace SGet
         #region Methods
 
         // Validate the URL
-        private bool IsUrlValid(string Url)
+        bool IsUrlValid(string Url)
         {
-            if (Url.StartsWith("http") && Url.Contains(":") && (Url.Length > 15)
+            if (Url.StartsWith("http", StringComparison.OrdinalIgnoreCase) && Url.Contains(":") && (Url.Length > 15)
                 && (Utilities.CountOccurence(Url, '/') >= 3) && (Url.LastIndexOf('/') != Url.Length - 1))
             {
                 string lastChars = Url.Substring(Url.Length - 9);
@@ -77,14 +77,14 @@ namespace SGet
         }
 
         // Return the amount of free disk space on a given partition
-        private string GetFreeDiskSpace(string driveName)
+        string GetFreeDiskSpace(string driveName)
         {
             foreach (DriveInfo drive in DriveInfo.GetDrives())
             {
                 if (drive.IsReady && drive.Name == driveName)
                 {
                     long freeSpace = drive.AvailableFreeSpace;
-                    double mbFreeSpace = (double)freeSpace / Math.Pow(1024, 2);
+                    double mbFreeSpace = freeSpace / Math.Pow(1024, 2);
                     double gbFreeSpace = mbFreeSpace / 1024D;
 
                     if (freeSpace < Math.Pow(1024, 3))
@@ -101,7 +101,7 @@ namespace SGet
 
         #region Event Handlers
 
-        private void btnDownload_Click(object sender, RoutedEventArgs e)
+        void btnDownload_Click(object sender, RoutedEventArgs e)
         {
             if (urlValid)
             {
@@ -113,16 +113,17 @@ namespace SGet
 
                 try
                 {
-                    WebDownloadClient download = new WebDownloadClient(tbURL.Text.Trim());
-
-                    download.FileName = tbSaveAs.Text.Trim();
+                    var download = new WebDownloadClient(tbURL.Text.Trim())
+                    {
+                        FileName = tbSaveAs.Text.Trim()
+                    };
 
                     // Register WebDownloadClient events
-                    download.DownloadProgressChanged += download.DownloadProgressChangedHandler;
+                    download.DownloadProgressChanged += download.DownloadProgressChangedHandler; 
                     download.DownloadCompleted += download.DownloadCompletedHandler;
-                    download.PropertyChanged += this.mainWindow.PropertyChangedHandler;
-                    download.StatusChanged += this.mainWindow.StatusChangedHandler;
-                    download.DownloadCompleted += this.mainWindow.DownloadCompletedHandler;
+                    download.PropertyChanged += mainWindow.PropertyChangedHandler;
+                    download.StatusChanged += mainWindow.StatusChangedHandler;
+                    download.DownloadCompleted += mainWindow.DownloadCompletedHandler;
 
                     // Create path to temporary file
                     if (!Directory.Exists(tbDownloadFolder.Text))
@@ -170,7 +171,7 @@ namespace SGet
 
                     download.AddedOn = DateTime.UtcNow;
                     download.CompletedOn = DateTime.MinValue;
-                    download.OpenFileOnCompletion = this.cbOpenFileOnCompletion.IsChecked.Value;
+                    download.OpenFileOnCompletion = cbOpenFileOnCompletion.IsChecked.Value;
 
                     // Add the download to the downloads list
                     DownloadManager.Instance.DownloadsList.Add(download);
@@ -182,7 +183,7 @@ namespace SGet
                         download.Status = DownloadStatus.Paused;
 
                     // Close the Add New Download window
-                    this.Close();
+                    Close();
                 }
                 catch (Exception ex)
                 {
@@ -195,28 +196,30 @@ namespace SGet
             }
         }
 
-        private void btnBrowse_Click(object sender, RoutedEventArgs e)
+        void btnBrowse_Click(object sender, RoutedEventArgs e)
         {
-            FolderBrowserDialog fbDialog = new FolderBrowserDialog();
-            fbDialog.Description = "Choose Download Folder";
-            fbDialog.ShowNewFolderButton = true;
+            var fbDialog = new FolderBrowserDialog
+            {
+                Description = "Choose Download Folder",
+                ShowNewFolderButton = true
+            };
             DialogResult result = fbDialog.ShowDialog();
 
             if (result.ToString().Equals("OK"))
             {
                 string path = fbDialog.SelectedPath;
-                if (path.EndsWith("\\") == false)
+                if (path.EndsWith("\\", StringComparison.Ordinal) == false)
                     path += "\\";
                 tbDownloadFolder.Text = path;
             }
         }
 
-        private void tbURL_TextChanged(object sender, TextChangedEventArgs e)
+        void tbURL_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (IsUrlValid(tbURL.Text))
             {
                 urlValid = true;
-                tbSaveAs.Text = tbURL.Text.Substring(tbURL.Text.LastIndexOf("/") + 1);
+                tbSaveAs.Text = tbURL.Text.Substring(tbURL.Text.LastIndexOf("/", StringComparison.Ordinal) + 1);
             }
             else
             {
@@ -225,7 +228,7 @@ namespace SGet
             }
         }
 
-        private void tbDownloadFolder_TextChanged(object sender, TextChangedEventArgs e)
+        void tbDownloadFolder_TextChanged(object sender, TextChangedEventArgs e)
         {
             string drive = String.Empty;
             if (tbDownloadFolder.Text.Length > 3)
@@ -235,12 +238,12 @@ namespace SGet
             lblFreeSpace.Content = "Free Disk Space: " + GetFreeDiskSpace(drive);
         }
 
-        private void cbStartImmediately_Click(object sender, RoutedEventArgs e)
+        void cbStartImmediately_Click(object sender, RoutedEventArgs e)
         {
-            startImmediately = this.cbStartImmediately.IsChecked.Value;
+            startImmediately = cbStartImmediately.IsChecked.Value;
         }
 
-        private void cbLoginToServer_Click(object sender, RoutedEventArgs e)
+        void cbLoginToServer_Click(object sender, RoutedEventArgs e)
         {
             tbUsername.IsEnabled = cbLoginToServer.IsChecked.Value;
             tbPassword.IsEnabled = cbLoginToServer.IsChecked.Value;

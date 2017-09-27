@@ -18,22 +18,22 @@ namespace SGet
         /// <summary>
         /// The base stream.
         /// </summary>
-        private Stream _baseStream;
+        Stream _baseStream;
 
         /// <summary>
         /// The number of bytes that has been transferred since the last throttle.
         /// </summary>
-        private long _byteCount;
+        long _byteCount;
 
         /// <summary>
         /// The start time in milliseconds of the last throttle.
         /// </summary>
-        private long _start;
+        long _start;
 
         /// <summary>
         /// The maximum bytes per second that can be transferred through the base stream.
         /// </summary>
-        private long _maximumBytesPerSecond;
+        long _maximumBytesPerSecond;
         #endregion
 
         #region Properties
@@ -160,22 +160,21 @@ namespace SGet
         /// </summary>
         /// <param name="baseStream">The base stream.</param>
         /// <param name="maximumBytesPerSecond">The maximum bytes per second that can be transferred through the base stream.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <see cref="baseStream"/> is a null reference.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">Thrown when <see cref="maximumBytesPerSecond"/> is a negative value.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when <c>baseStream</c> is a null reference.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <c>maximumBytesPerSecond</c> is a negative value.</exception>
         public ThrottledStream(Stream baseStream, long maximumBytesPerSecond)
         {
-            if (baseStream == null)
-            {
-                throw new ArgumentNullException("baseStream");
-            }
-
             if (maximumBytesPerSecond < 0)
             {
-                throw new ArgumentOutOfRangeException("maximumBytesPerSecond",
-                    maximumBytesPerSecond, "The maximum number of bytes per second can't be negatie.");
+                throw new ArgumentOutOfRangeException
+                (
+                    nameof(maximumBytesPerSecond),
+                    maximumBytesPerSecond,
+                    "The maximum number of bytes per second can't be negatie."
+                );
             }
 
-            _baseStream = baseStream;
+            _baseStream = baseStream ?? throw new ArgumentNullException(nameof(baseStream));
             _maximumBytesPerSecond = maximumBytesPerSecond;
             _start = CurrentMilliseconds;
             _byteCount = 0;

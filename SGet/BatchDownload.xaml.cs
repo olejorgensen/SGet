@@ -11,10 +11,10 @@ namespace SGet
 {
     public partial class BatchDownload : Window
     {
-        private bool batchUrlValid;
-        private bool startImmediately;
-        private MainWindow mainWindow;
-        private List<string> downloadUrls = new List<string>();
+        bool batchUrlValid;
+        bool startImmediately;
+        MainWindow mainWindow;
+        List<string> downloadUrls = new List<string>();
 
         #region Constructor
 
@@ -27,7 +27,7 @@ namespace SGet
             startImmediately = true;
             rbFrom1.IsChecked = true;
 
-            this.listBoxFiles.ItemsSource = downloadUrls;
+            listBoxFiles.ItemsSource = downloadUrls;
 
             if (System.Windows.Clipboard.ContainsText())
             {
@@ -46,9 +46,9 @@ namespace SGet
         #region Methods
 
         // Validate the Batch URL
-        private bool IsBatchUrlValid(string Url)
+        bool IsBatchUrlValid(string Url)
         {
-            if (Url.StartsWith("http") && Url.Contains(":") && (Url.Length > 15) && (Utilities.CountOccurence(Url, '/') >= 3)
+            if (Url.StartsWith("http", StringComparison.OrdinalIgnoreCase) && Url.Contains(":") && (Url.Length > 15) && (Utilities.CountOccurence(Url, '/') >= 3)
                  && (Url.LastIndexOf('/') != Url.Length - 1) && (Utilities.CountOccurence(Url, '*') == 1))
             {
                 string lastChars = Url.Substring(Url.Length - 9);
@@ -79,7 +79,7 @@ namespace SGet
         }
 
         // Update list of files to download
-        private void UpdateFilesList()
+        void UpdateFilesList()
         {
             if (batchUrlValid)
             {
@@ -88,19 +88,19 @@ namespace SGet
                     if ((tbFrom1.Text.Length == 0) || (tbTo1.Text.Length == 0) || (Convert.ToInt32(tbFrom1.Text) > Convert.ToInt32(tbTo1.Text)))
                     {
                         downloadUrls.Clear();
-                        this.listBoxFiles.Items.Refresh();
-                        this.lblFilesToDownload.Content = "0 files to download";
+                        listBoxFiles.Items.Refresh();
+                        lblFilesToDownload.Content = "0 files to download";
                         return;
                     }
                 }
 
                 if (rbFrom2.IsChecked.Value)
                 {
-                    if ((tbFrom2.Text.Length == 0) || (tbTo2.Text.Length == 0) || ((int)Convert.ToChar(tbFrom2.Text) > (int)Convert.ToChar(tbTo2.Text)))
+                    if ((tbFrom2.Text.Length == 0) || (tbTo2.Text.Length == 0) || Convert.ToChar(tbFrom2.Text) > Convert.ToChar(tbTo2.Text))
                     {
                         downloadUrls.Clear();
-                        this.listBoxFiles.Items.Refresh();
-                        this.lblFilesToDownload.Content = "0 files to download";
+                        listBoxFiles.Items.Refresh();
+                        lblFilesToDownload.Content = "0 files to download";
                         return;
                     }
                 }
@@ -140,8 +140,8 @@ namespace SGet
                 }
                 else
                 {
-                    int firstChar = (int)Convert.ToChar(tbFrom2.Text);
-                    int lastChar = (int)Convert.ToChar(tbTo2.Text);
+                    int firstChar = Convert.ToChar(tbFrom2.Text);
+                    int lastChar = Convert.ToChar(tbTo2.Text);
                     for (int c = firstChar; c <= lastChar; c++)
                     {
                         if (Char.IsLetter((char)c))
@@ -152,19 +152,19 @@ namespace SGet
                     }
                 }
 
-                this.listBoxFiles.Items.Refresh();
+                listBoxFiles.Items.Refresh();
                 if (downloadUrls.Count == 1)
-                    this.lblFilesToDownload.Content = "1 file to download";
+                    lblFilesToDownload.Content = "1 file to download";
                 else
-                    this.lblFilesToDownload.Content = downloadUrls.Count + " files to download";
+                    lblFilesToDownload.Content = downloadUrls.Count + " files to download";
             }
             else
             {
                 if (downloadUrls.Count > 0)
                 {
                     downloadUrls.Clear();
-                    this.listBoxFiles.Items.Refresh();
-                    this.lblFilesToDownload.Content = "0 files to download";
+                    listBoxFiles.Items.Refresh();
+                    lblFilesToDownload.Content = "0 files to download";
                 }
             }
         }
@@ -173,7 +173,7 @@ namespace SGet
 
         #region Event Handlers
 
-        private void btnDownload_Click(object sender, RoutedEventArgs e)
+        void btnDownload_Click(object sender, RoutedEventArgs e)
         {
             if (downloadUrls.Count > 0)
             {
@@ -181,25 +181,26 @@ namespace SGet
                 {
                     foreach (string url in downloadUrls)
                     {
-                        WebDownloadClient download = new WebDownloadClient(url);
-                        download.IsBatch = true;
-                        download.BatchUrlChecked = false;
-
-                        download.FileName = url.Substring(url.LastIndexOf('/') + 1);
+                        var download = new WebDownloadClient(url)
+                        {
+                            IsBatch = true,
+                            BatchUrlChecked = false,
+                            FileName = url.Substring(url.LastIndexOf('/') + 1)
+                        };
 
                         // Register WebDownloadClient events
                         download.DownloadProgressChanged += download.DownloadProgressChangedHandler;
                         download.DownloadCompleted += download.DownloadCompletedHandler;
-                        download.PropertyChanged += this.mainWindow.PropertyChangedHandler;
-                        download.StatusChanged += this.mainWindow.StatusChangedHandler;
-                        download.DownloadCompleted += this.mainWindow.DownloadCompletedHandler;
+                        download.PropertyChanged += mainWindow.PropertyChangedHandler;
+                        download.StatusChanged += mainWindow.StatusChangedHandler;
+                        download.DownloadCompleted += mainWindow.DownloadCompletedHandler;
 
                         // Create path to temporary file
                         if (!Directory.Exists(tbDownloadFolder.Text))
                         {
                             Directory.CreateDirectory(tbDownloadFolder.Text);
                         }
-                        string filePath = tbDownloadFolder.Text + download.FileName;
+                        string filePath = Path.Combine(tbDownloadFolder.Text, download.FileName);
                         string tempPath = filePath + ".tmp";
 
                         // Check if there is already an ongoing download on that path
@@ -248,7 +249,7 @@ namespace SGet
                     }
 
                     // Close the Create Batch Download window
-                    this.Close();
+                    Close();
                 }
                 catch (Exception ex)
                 {
@@ -259,23 +260,25 @@ namespace SGet
                 Xceed.Wpf.Toolkit.MessageBox.Show("There are no files to download!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
-        private void btnBrowse_Click(object sender, RoutedEventArgs e)
+        void btnBrowse_Click(object sender, RoutedEventArgs e)
         {
-            FolderBrowserDialog fbDialog = new FolderBrowserDialog();
-            fbDialog.Description = "Choose Batch Download Folder";
-            fbDialog.ShowNewFolderButton = true;
+            var fbDialog = new FolderBrowserDialog
+            {
+                Description = "Choose Batch Download Folder",
+                ShowNewFolderButton = true
+            };
             DialogResult result = fbDialog.ShowDialog();
 
             if (result.ToString().Equals("OK"))
             {
                 string path = fbDialog.SelectedPath;
-                if (path.EndsWith("\\") == false)
+                if (path.EndsWith("\\", StringComparison.Ordinal) == false)
                     path += "\\";
                 tbDownloadFolder.Text = path;
             }
         }
 
-        private void tbURL_TextChanged(object sender, TextChangedEventArgs e)
+        void tbURL_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (IsBatchUrlValid(tbURL.Text))
             {
@@ -289,18 +292,18 @@ namespace SGet
             }
         }
 
-        private void cbStartImmediately_Click(object sender, RoutedEventArgs e)
+        void cbStartImmediately_Click(object sender, RoutedEventArgs e)
         {
-            startImmediately = this.cbStartImmediately.IsChecked.Value;
+            startImmediately = cbStartImmediately.IsChecked.Value;
         }
 
-        private void cbLoginToServer_Click(object sender, RoutedEventArgs e)
+        void cbLoginToServer_Click(object sender, RoutedEventArgs e)
         {
             tbUsername.IsEnabled = cbLoginToServer.IsChecked.Value;
             tbPassword.IsEnabled = cbLoginToServer.IsChecked.Value;
         }
 
-        private void rbFrom1_Checked(object sender, RoutedEventArgs e)
+        void rbFrom1_Checked(object sender, RoutedEventArgs e)
         {
             tbFrom1.IsEnabled = true;
             tbTo1.IsEnabled = true;
@@ -310,7 +313,7 @@ namespace SGet
             UpdateFilesList();
         }
 
-        private void rbFrom2_Checked(object sender, RoutedEventArgs e)
+        void rbFrom2_Checked(object sender, RoutedEventArgs e)
         {
             tbFrom2.IsEnabled = true;
             tbTo2.IsEnabled = true;
@@ -320,47 +323,47 @@ namespace SGet
             UpdateFilesList();
         }
 
-        private void tbFrom1_TextChanged(object sender, TextChangedEventArgs e)
+        void tbFrom1_TextChanged(object sender, TextChangedEventArgs e)
         {
-            for (int i = 0; i < this.tbFrom1.Text.Length; i++)
+            for (int i = 0; i < tbFrom1.Text.Length; i++)
             {
-                if (!char.IsDigit(this.tbFrom1.Text[i]))
-                    this.tbFrom1.Text = String.Empty;
+                if (!char.IsDigit(tbFrom1.Text[i]))
+                    tbFrom1.Text = String.Empty;
             }
             UpdateFilesList();
         }
 
-        private void tbTo1_TextChanged(object sender, TextChangedEventArgs e)
+        void tbTo1_TextChanged(object sender, TextChangedEventArgs e)
         {
-            for (int i = 0; i < this.tbTo1.Text.Length; i++)
+            for (int i = 0; i < tbTo1.Text.Length; i++)
             {
-                if (!char.IsDigit(this.tbTo1.Text[i]))
-                    this.tbTo1.Text = String.Empty;
+                if (!char.IsDigit(tbTo1.Text[i]))
+                    tbTo1.Text = String.Empty;
             }
             UpdateFilesList();
         }
 
-        private void tbFrom2_TextChanged(object sender, TextChangedEventArgs e)
+        void tbFrom2_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (this.tbFrom2.Text.Length == 1)
+            if (tbFrom2.Text.Length == 1)
             {
-                if (!char.IsLetter(this.tbFrom2.Text[0]))
-                    this.tbFrom2.Text = "a";
+                if (!char.IsLetter(tbFrom2.Text[0]))
+                    tbFrom2.Text = "a";
             }
             UpdateFilesList();
         }
 
-        private void tbTo2_TextChanged(object sender, TextChangedEventArgs e)
+        void tbTo2_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (this.tbTo2.Text.Length == 1)
+            if (tbTo2.Text.Length == 1)
             {
-                if (!char.IsLetter(this.tbTo2.Text[0]))
-                    this.tbTo2.Text = "z";
+                if (!char.IsLetter(tbTo2.Text[0]))
+                    tbTo2.Text = "z";
             }
             UpdateFilesList();
         }
 
-        private void intNumberLength_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        void intNumberLength_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
             UpdateFilesList();
         }

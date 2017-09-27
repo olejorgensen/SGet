@@ -10,9 +10,9 @@ namespace SGet
 {
     public partial class Preferences : Window
     {
-        private int maxDownloads;
-        private bool enableSpeedLimit;
-        private int speedLimit;
+        int maxDownloads;
+        bool enableSpeedLimit;
+        int speedLimit;
 
         #region Constructor
 
@@ -71,7 +71,7 @@ namespace SGet
         #region Methods
 
         // Save the settings to the .config file
-        private void SaveSettings()
+        void SaveSettings()
         {
             Settings.Default.StartOnSystemStartup = cbStartOnSystemStartup.IsChecked.Value;
 
@@ -163,7 +163,7 @@ namespace SGet
             Settings.Default.Save();
         }
 
-        private void EnableProxyConfig(bool enabled)
+        void EnableProxyConfig(bool enabled)
         {
             tbHttpProxy.IsEnabled = enabled;
             intProxyPort.IsEnabled = enabled;
@@ -175,45 +175,47 @@ namespace SGet
 
         #region Event Handlers
 
-        private void btnBrowse_Click(object sender, RoutedEventArgs e)
+        void btnBrowse_Click(object sender, RoutedEventArgs e)
         {
-            FolderBrowserDialog fbDialog = new FolderBrowserDialog();
-            fbDialog.Description = "Choose Default Download Location";
-            fbDialog.ShowNewFolderButton = true;
+            var fbDialog = new FolderBrowserDialog
+            {
+                Description = "Choose Default Download Location",
+                ShowNewFolderButton = true
+            };
             DialogResult result = fbDialog.ShowDialog();
 
             if (result.ToString().Equals("OK"))
             {
                 string path = fbDialog.SelectedPath;
-                if (path.EndsWith("\\") == false)
+                if (path.EndsWith("\\", StringComparison.Ordinal) == false)
                     path += "\\";
                 tbLocation.Text = path;
             }
         }
 
-        private void btnOK_Click(object sender, RoutedEventArgs e)
+        void btnOK_Click(object sender, RoutedEventArgs e)
         {
             SaveSettings();
-            this.Close();
+            Close();
         }
 
-        private void cbSpeedLimit_Click(object sender, RoutedEventArgs e)
+        void cbSpeedLimit_Click(object sender, RoutedEventArgs e)
         {
             intSpeedLimit.IsEnabled = cbSpeedLimit.IsChecked.Value;
         }
 
-        private void rbManualProxyConfig_Checked(object sender, RoutedEventArgs e)
+        void rbManualProxyConfig_Checked(object sender, RoutedEventArgs e)
         {
             EnableProxyConfig(true);
         }
 
-        private void rbManualProxyConfig_Unchecked(object sender, RoutedEventArgs e)
+        void rbManualProxyConfig_Unchecked(object sender, RoutedEventArgs e)
         {
             EnableProxyConfig(false);
         }
 
         // Restore default settings for the current tab
-        private void btnRestore_Click(object sender, RoutedEventArgs e)
+        void btnRestore_Click(object sender, RoutedEventArgs e)
         {
             if (tabControl.SelectedItem == (TabItem)tabControl.FindName("tiGeneral"))
             {

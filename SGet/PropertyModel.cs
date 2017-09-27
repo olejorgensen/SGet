@@ -4,23 +4,14 @@ namespace SGet
 {
     public class PropertyModel
     {
-        private string _name = String.Empty;
-        private string _value = String.Empty;
-
         public PropertyModel(string name, string value)
         {
-            _name = name;
-            _value = value;
+            Name = name;
+            Value = value;
         }
 
-        public string Name
-        {
-            get { return _name; }
-        }
+        public string Name { get; } = String.Empty;
 
-        public string Value
-        {
-            get { return _value; }
-        }
+        public string Value { get; } = String.Empty;
     }
 }

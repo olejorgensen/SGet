@@ -8,12 +8,12 @@ namespace SGet
 {
     public partial class App : Application, ISingleInstanceApp
     {
-        private const string Unique = "SGet";
+        const string Unique = "SGet";
 
         #region Methods
 
         // Catch exceptions which occur outside try-catch blocks
-        private void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        void App_DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
             Xceed.Wpf.Toolkit.MessageBox.Show(e.Exception.Message + "\n\n" + e.Exception.InnerException.ToString(), "Error");
             e.Handled = true;
@@ -35,15 +35,17 @@ namespace SGet
         public bool SignalExternalCommandLineArgs(IList<string> args)
         {
             // Check if the command-line arguments were sent and if the NewDownload window is already open
-            if ((args.Count == 2) && args[1].ToString().StartsWith("http") && !IsWindowAlreadyOpen(typeof(NewDownload)))
+            if ((args.Count == 2) && args[1].StartsWith("http", StringComparison.OrdinalIgnoreCase) && !IsWindowAlreadyOpen(typeof(NewDownload)))
             {
                 // The first argument args[0] contains the path to the SGet process
                 // The second argument args[1] contains the URL of the file to download, which is set as text in the Clipboard
                 Clipboard.SetText(args[1].ToString());
 
                 // Open the Add New Download window and ensure it's on the top
-                NewDownload newDownloadDialog = new NewDownload((MainWindow)Application.Current.MainWindow);
-                newDownloadDialog.Topmost = true;
+                var newDownloadDialog = new NewDownload((MainWindow)Application.Current.MainWindow)
+                {
+                    Topmost = true
+                };
                 newDownloadDialog.ShowDialog();
             }
 

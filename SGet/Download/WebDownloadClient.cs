@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Windows;
@@ -31,13 +32,13 @@ namespace SGet
         }
 
         // Username and password for accessing the HTTP server
-        public NetworkCredential ServerLogin = null;
+        public NetworkCredential ServerLogin;
 
         // HTTP proxy server information
-        public WebProxy Proxy = null;
+        public WebProxy Proxy;
 
         // Thread for the download process
-        public Thread DownloadThread = null;
+        public Thread DownloadThread;
 
         // Temporary file path
         public string TempDownloadPath { get; set; }
@@ -47,7 +48,7 @@ namespace SGet
         {
             get
             {
-                return this.TempDownloadPath.Remove(this.TempDownloadPath.Length - 4);
+                return TempDownloadPath.Remove(TempDownloadPath.Length - 4);
             }
         }
 
@@ -56,7 +57,7 @@ namespace SGet
         {
             get
             {
-                return this.TempDownloadPath.Remove(TempDownloadPath.LastIndexOf("\\") + 1);
+                return TempDownloadPath.Remove(TempDownloadPath.LastIndexOf("\\", StringComparison.Ordinal) + 1);
             }
         }
 
@@ -85,7 +86,7 @@ namespace SGet
         {
             get
             {
-                return ((float)(DownloadedSize + CachedSize) / (float)FileSize) * 100F;
+                return (DownloadedSize + CachedSize) / (float)FileSize * 100F;
             }
         }
 
@@ -95,10 +96,9 @@ namespace SGet
             {
                 if (Percent < 0 || float.IsNaN(Percent))
                     return "0.0%";
-                else if (Percent > 100)
+                if (Percent > 100)
                     return "100.0%";
-                else
-                    return String.Format(numberFormat, "{0:0.0}%", Percent);
+                return String.Format(numberFormat, "{0:0.0}%", Percent);
             }
         }
 
@@ -117,7 +117,7 @@ namespace SGet
         {
             get
             {
-                if (this.Status == DownloadStatus.Downloading && !this.HasError)
+                if (Status == DownloadStatus.Downloading && !HasError)
                 {
                     return DownloadManager.FormatSpeedString(downloadSpeed);
                 }
@@ -126,33 +126,33 @@ namespace SGet
         }
 
         // Used for updating download speed on the DataGrid
-        private int speedUpdateCount;
+        int speedUpdateCount;
 
         // Average download speed
         public string AverageDownloadSpeed
         {
             get
             {
-                return DownloadManager.FormatSpeedString((int)Math.Floor((double)(DownloadedSize + CachedSize) / TotalElapsedTime.TotalSeconds));
+                return DownloadManager.FormatSpeedString((int)Math.Floor((DownloadedSize + CachedSize) / TotalElapsedTime.TotalSeconds));
             }
         }
 
         // List of download speed values in the last 10 seconds
-        private List<int> downloadRates = new List<int>();
+        List<int> downloadRates = new List<int>();
 
         // Average download speed in the last 10 seconds, used for calculating the time left to complete the download
-        private int recentAverageRate;
+        int recentAverageRate;
 
         // Time left to complete the download
         public string TimeLeft
         {
             get
             {
-                if (recentAverageRate > 0 && this.Status == DownloadStatus.Downloading && !this.HasError)
+                if (recentAverageRate > 0 && Status == DownloadStatus.Downloading && !HasError)
                 {
                     double secondsLeft = (FileSize - DownloadedSize + CachedSize) / recentAverageRate;
 
-                    TimeSpan span = TimeSpan.FromSeconds(secondsLeft);
+                    var span = TimeSpan.FromSeconds(secondsLeft);
 
                     return DownloadManager.FormatTimeSpanString(span);
                 }
@@ -161,7 +161,7 @@ namespace SGet
         }
 
         // Download status
-        private DownloadStatus status;
+        DownloadStatus status;
         public DownloadStatus Status
         {
             get
@@ -182,10 +182,9 @@ namespace SGet
         {
             get
             {
-                if (this.HasError)
+                if (HasError)
                     return StatusText;
-                else
-                    return Status.ToString();
+                return Status.ToString();
             }
             set
             {
@@ -198,21 +197,18 @@ namespace SGet
         public TimeSpan ElapsedTime = new TimeSpan();
 
         // Time when the download was last started
-        private DateTime lastStartTime;
+        DateTime lastStartTime;
 
         // Total elapsed time (includes the time period when the download was paused)
         public TimeSpan TotalElapsedTime
         {
             get
             {
-                if (this.Status != DownloadStatus.Downloading)
+                if (Status != DownloadStatus.Downloading)
                 {
                     return ElapsedTime;
                 }
-                else
-                {
-                    return ElapsedTime.Add(DateTime.UtcNow - lastStartTime);
-                }
+                return ElapsedTime.Add(DateTime.UtcNow - lastStartTime);
             }
         }
 
@@ -225,20 +221,21 @@ namespace SGet
         }
 
         // Time and size of downloaded data in the last calculaction of download speed
-        private DateTime lastNotificationTime;
-        private long lastNotificationDownloadedSize;
+        DateTime lastNotificationTime;
+        long lastNotificationDownloadedSize;
 
         // Last update time of the DataGrid item
         public DateTime LastUpdateTime { get; set; }
 
         // Date and time when the download was added to the list
         public DateTime AddedOn { get; set; }
+
+        private readonly string DateFormat = "dd.MM.yyyy. HH:mm:ss";
         public string AddedOnString
         {
             get
             {
-                string format = "dd.MM.yyyy. HH:mm:ss";
-                return AddedOn.ToString(format);
+                return AddedOn.ToString(DateFormat);
             }
         }
 
@@ -250,11 +247,9 @@ namespace SGet
             {
                 if (CompletedOn != DateTime.MinValue)
                 {
-                    string format = "dd.MM.yyyy. HH:mm:ss";
-                    return CompletedOn.ToString(format);
+                    return CompletedOn.ToString(DateFormat);
                 }
-                else
-                    return String.Empty;
+                return String.Empty;
             }
         }
 
@@ -295,10 +290,10 @@ namespace SGet
         public int MaxCacheSize { get; set; }
 
         // Number format with a dot as the decimal separator
-        private NumberFormatInfo numberFormat = NumberFormatInfo.InvariantInfo;
+        NumberFormatInfo numberFormat = NumberFormatInfo.InvariantInfo;
 
         // Used for blocking other processes when a file is being created or written to
-        private static object fileLocker = new object();
+        static object fileLocker = new object();
 
         #endregion
 
@@ -306,25 +301,25 @@ namespace SGet
 
         public WebDownloadClient(string url)
         {
-            this.BufferSize = 1024; // Buffer size is 1KB
-            this.MaxCacheSize = Settings.Default.MemoryCacheSize * 1024; // Default cache size is 1MB
-            this.BufferCountPerNotification = 64;
+            BufferSize = 1024; // Buffer size is 1KB
+            MaxCacheSize = Settings.Default.MemoryCacheSize * 1024; // Default cache size is 1MB
+            BufferCountPerNotification = 64;
 
-            this.Url = new Uri(url, UriKind.Absolute);
+            Url = new Uri(url, UriKind.Absolute);
 
-            this.SupportsRange = false;
-            this.HasError = false;
-            this.OpenFileOnCompletion = false;
-            this.TempFileCreated = false;
-            this.IsSelected = false;
-            this.IsBatch = false;
-            this.BatchUrlChecked = false;
-            this.SpeedLimitChanged = false;
-            this.speedUpdateCount = 0;
-            this.recentAverageRate = 0;
-            this.StatusText = String.Empty;
+            SupportsRange = false;
+            HasError = false;
+            OpenFileOnCompletion = false;
+            TempFileCreated = false;
+            IsSelected = false;
+            IsBatch = false;
+            BatchUrlChecked = false;
+            SpeedLimitChanged = false;
+            speedUpdateCount = 0;
+            recentAverageRate = 0;
+            StatusText = String.Empty;
 
-            this.Status = DownloadStatus.Initialized;
+            Status = DownloadStatus.Initialized;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -342,81 +337,68 @@ namespace SGet
         // Generate PropertyChanged event to update the UI
         protected void RaisePropertyChanged(string name)
         {
-            PropertyChangedEventHandler handler = PropertyChanged;
-            if (handler != null)
-            {
-                handler(this, new PropertyChangedEventArgs(name));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
         // Generate StatusChanged event
         protected virtual void RaiseStatusChanged()
         {
-            if (StatusChanged != null)
-            {
-                StatusChanged(this, EventArgs.Empty);
-            }
+            StatusChanged?.Invoke(this, EventArgs.Empty);
         }
 
         // Generate DownloadProgressChanged event
         protected virtual void RaiseDownloadProgressChanged()
         {
-            if (DownloadProgressChanged != null)
-            {
-                DownloadProgressChanged(this, EventArgs.Empty);
-            }
+            DownloadProgressChanged?.Invoke(this, EventArgs.Empty);
         }
 
         // Generate DownloadCompleted event
         protected virtual void RaiseDownloadCompleted()
         {
-            if (DownloadCompleted != null)
-            {
-                DownloadCompleted(this, EventArgs.Empty);
-            }
+            DownloadCompleted?.Invoke(this, EventArgs.Empty);
         }
 
         // DownloadProgressChanged event handler
         public void DownloadProgressChangedHandler(object sender, EventArgs e)
         {
             // Update the UI every second
-            if (DateTime.UtcNow > this.LastUpdateTime.AddSeconds(1))
+            if (DateTime.UtcNow > LastUpdateTime.AddSeconds(1))
             {
                 CalculateDownloadSpeed();
                 CalculateAverageRate();
                 UpdateDownloadDisplay();
-                this.LastUpdateTime = DateTime.UtcNow;
+                LastUpdateTime = DateTime.UtcNow;
             }
         }
 
         // DownloadCompleted event handler
         public void DownloadCompletedHandler(object sender, EventArgs e)
         {
-            if (!this.HasError)
+            if (!HasError)
             {
                 // If the file already exists, delete it
-                if (File.Exists(this.DownloadPath))
+                if (File.Exists(DownloadPath))
                 {
-                    File.Delete(this.DownloadPath);
+                    File.Delete(DownloadPath);
                 }
 
                 // Convert the temporary (.tmp) file to the actual (requested) file
-                if (File.Exists(this.TempDownloadPath))
+                if (File.Exists(TempDownloadPath))
                 {
-                    File.Move(this.TempDownloadPath, this.DownloadPath);
+                    File.Move(TempDownloadPath, DownloadPath);
                 }
 
-                this.Status = DownloadStatus.Completed;
+                Status = DownloadStatus.Completed;
                 UpdateDownloadDisplay();
 
-                if (this.OpenFileOnCompletion && File.Exists(this.DownloadPath))
+                if (OpenFileOnCompletion && File.Exists(DownloadPath))
                 {
                     Process.Start(@DownloadPath);
                 }
             }
             else
             {
-                this.Status = DownloadStatus.Error;
+                Status = DownloadStatus.Error;
                 UpdateDownloadDisplay();
             }
         }
@@ -425,125 +407,62 @@ namespace SGet
 
         #region Methods
 
+        bool FindHeader(string[] headers, string header)
+        {
+            var found = headers
+                .Where(h => h != null)
+                .FirstOrDefault(h => h.Equals(header, StringComparison.OrdinalIgnoreCase)) != null;
+            return found;
+        }
+
         // Check URL to get file size, set login and/or proxy server information, check if the server supports the Range header
         public void CheckUrl()
         {
             try
             {
-                var webRequest = (HttpWebRequest)WebRequest.Create(this.Url);
-                webRequest.Method = "HEAD";
-                webRequest.Timeout = 5000;
-
-                if (this.ServerLogin != null)
-                {
-                    webRequest.PreAuthenticate = true;
-                    webRequest.Credentials = this.ServerLogin;
-                }
-                else
-                {
-                    webRequest.Credentials = CredentialCache.DefaultCredentials;
-                }
-
-                if (Settings.Default.ManualProxyConfig && Settings.Default.HttpProxy != String.Empty)
-                {
-                    this.Proxy = new WebProxy();
-                    this.Proxy.Address = new Uri("http://" + Settings.Default.HttpProxy + ":" + Settings.Default.ProxyPort);
-                    this.Proxy.BypassProxyOnLocal = false;
-                    if (Settings.Default.ProxyUsername != String.Empty && Settings.Default.ProxyPassword != String.Empty)
-                    {
-                        this.Proxy.Credentials = new NetworkCredential(Settings.Default.ProxyUsername, Settings.Default.ProxyPassword);
-                    }
-                }
-                if (this.Proxy != null)
-                {
-                    webRequest.Proxy = this.Proxy;
-                }
-                else
-                {
-                    webRequest.Proxy = WebRequest.DefaultWebProxy;
-                }
-
+                var webRequest = CreateWebRequest("HEAD", 5000);
                 using (WebResponse response = webRequest.GetResponse())
                 {
-                    foreach (var header in response.Headers.AllKeys)
+                    SupportsRange = FindHeader(response.Headers.AllKeys, "Accept-Ranges");
+                    FileSize = response.ContentLength;
+                    if (FileSize <= 0)
                     {
-                        if (header.Equals("Accept-Ranges", StringComparison.OrdinalIgnoreCase))
-                        {
-                            this.SupportsRange = true;
-                        }
-                    }
-
-                    this.FileSize = response.ContentLength;
-
-                    if (this.FileSize <= 0)
-                    {
-                        Xceed.Wpf.Toolkit.MessageBox.Show("The requested file does not exist!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        this.HasError = true;
+                        Xceed.Wpf.Toolkit.MessageBox.Show
+                        (
+                            "The requested file does not exist!",
+                            "Error",
+                            MessageBoxButton.OK, MessageBoxImage.Error
+                        );
+                        HasError = true;
                     }
                 }
             }
             catch (Exception)
             {
-                Xceed.Wpf.Toolkit.MessageBox.Show("There was an error while getting the file information. Please make sure the URL is accessible.",
-                                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                this.HasError = true;
+                Xceed.Wpf.Toolkit.MessageBox.Show
+                (
+                    "There was an error while getting the file information. Please make sure the URL is accessible.",
+                    "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error
+                );
+                HasError = true;
             }
         }
 
         // Batch download URL check
-        private void CheckBatchUrl()
+        void CheckBatchUrl()
         {
-            var webRequest = (HttpWebRequest)WebRequest.Create(this.Url);
-            webRequest.Method = "HEAD";
-
-            if (this.ServerLogin != null)
-            {
-                webRequest.PreAuthenticate = true;
-                webRequest.Credentials = this.ServerLogin;
-            }
-            else
-            {
-                webRequest.Credentials = CredentialCache.DefaultCredentials;
-            }
-
-            if (Settings.Default.ManualProxyConfig && Settings.Default.HttpProxy != String.Empty)
-            {
-                this.Proxy = new WebProxy();
-                this.Proxy.Address = new Uri("http://" + Settings.Default.HttpProxy + ":" + Settings.Default.ProxyPort);
-                this.Proxy.BypassProxyOnLocal = false;
-                if (Settings.Default.ProxyUsername != String.Empty && Settings.Default.ProxyPassword != String.Empty)
-                {
-                    this.Proxy.Credentials = new NetworkCredential(Settings.Default.ProxyUsername, Settings.Default.ProxyPassword);
-                }
-            }
-            if (this.Proxy != null)
-            {
-                webRequest.Proxy = this.Proxy;
-            }
-            else
-            {
-                webRequest.Proxy = WebRequest.DefaultWebProxy;
-            }
-
+            var webRequest = CreateWebRequest("HEAD", 5000);
             using (WebResponse response = webRequest.GetResponse())
             {
-                foreach (var header in response.Headers.AllKeys)
+                SupportsRange = FindHeader(response.Headers.AllKeys, "Accept-Ranges");
+                FileSize = response.ContentLength;
+                if (FileSize <= 0)
                 {
-                    if (header.Equals("Accept-Ranges", StringComparison.OrdinalIgnoreCase))
-                    {
-                        this.SupportsRange = true;
-                    }
+                    StatusString = "Error: The requested file does not exist";
+                    FileSize = 0;
+                    HasError = true;
                 }
-
-                this.FileSize = response.ContentLength;
-
-                if (this.FileSize <= 0)
-                {
-                    this.StatusString = "Error: The requested file does not exist";
-                    this.FileSize = 0;
-                    this.HasError = true;
-                }
-
                 RaisePropertyChanged("FileSizeString");
             }
         }
@@ -554,14 +473,14 @@ namespace SGet
             // Lock this block of code so other threads and processes don't interfere with file creation
             lock (fileLocker)
             {
-                using (FileStream fileStream = File.Create(this.TempDownloadPath))
+                using (FileStream fileStream = File.Create(TempDownloadPath))
                 {
                     long createdSize = 0;
                     byte[] buffer = new byte[4096];
-                    while (createdSize < this.FileSize)
+                    while (createdSize < FileSize)
                     {
-                        int bufferSize = (this.FileSize - createdSize) < 4096
-                            ? (int)(this.FileSize - createdSize) : 4096;
+                        int bufferSize = (FileSize - createdSize) < 4096
+                            ? (int)(FileSize - createdSize) : 4096;
                         fileStream.Write(buffer, 0, bufferSize);
                         createdSize += bufferSize;
                     }
@@ -575,7 +494,7 @@ namespace SGet
             // Block other threads and processes from using the file
             lock (fileLocker)
             {
-                using (FileStream fileStream = new FileStream(TempDownloadPath, FileMode.Open))
+                using (var fileStream = new FileStream(TempDownloadPath, FileMode.Open))
                 {
                     byte[] cacheContent = new byte[cachedSize];
                     downloadCache.Seek(0, SeekOrigin.Begin);
@@ -587,12 +506,12 @@ namespace SGet
         }
 
         // Calculate download speed
-        private void CalculateDownloadSpeed()
+        void CalculateDownloadSpeed()
         {
             DateTime now = DateTime.UtcNow;
             TimeSpan interval = now - lastNotificationTime;
             double timeDiff = interval.TotalSeconds;
-            double sizeDiff = (double)(DownloadedSize + CachedSize - lastNotificationDownloadedSize);
+            double sizeDiff = DownloadedSize + CachedSize - lastNotificationDownloadedSize;
 
             downloadSpeed = (int)Math.Floor(sizeDiff / timeDiff);
 
@@ -603,7 +522,7 @@ namespace SGet
         }
 
         // Calculate average download speed in the last 10 seconds
-        private void CalculateAverageRate()
+        void CalculateAverageRate()
         {
             if (downloadRates.Count > 0)
             {
@@ -622,35 +541,35 @@ namespace SGet
         }
 
         // Update download display (on downloadsGrid and propertiesGrid controls)
-        private void UpdateDownloadDisplay()
+        void UpdateDownloadDisplay()
         {
-            RaisePropertyChanged("DownloadedSizeString");
-            RaisePropertyChanged("PercentString");
-            RaisePropertyChanged("Progress");
+            RaisePropertyChanged(nameof(DownloadedSizeString));
+            RaisePropertyChanged(nameof(PercentString));
+            RaisePropertyChanged(nameof(Progress));
 
             // New download speed update every 4 seconds
             TimeSpan startInterval = DateTime.UtcNow - lastStartTime;
-            if (speedUpdateCount == 0 || startInterval.TotalSeconds < 4 || this.HasError || this.Status == DownloadStatus.Paused
-                || this.Status == DownloadStatus.Queued || this.Status == DownloadStatus.Completed)
+            if (speedUpdateCount == 0 || startInterval.TotalSeconds < 4 || HasError || Status == DownloadStatus.Paused
+                || Status == DownloadStatus.Queued || Status == DownloadStatus.Completed)
             {
-                RaisePropertyChanged("DownloadSpeed");
+                RaisePropertyChanged(nameof(DownloadSpeed));
             }
             speedUpdateCount++;
             if (speedUpdateCount == 4)
                 speedUpdateCount = 0;
 
-            RaisePropertyChanged("TimeLeft");
-            RaisePropertyChanged("StatusString");
-            RaisePropertyChanged("CompletedOnString");
+            RaisePropertyChanged(nameof(TimeLeft));
+            RaisePropertyChanged(nameof(StatusString));
+            RaisePropertyChanged(nameof(CompletedOnString));
 
-            if (this.IsSelected)
+            if (IsSelected)
             {
                 RaisePropertyChanged("AverageSpeedAndTotalTime");
             }
         }
 
         // Reset download properties to default values
-        private void ResetProperties()
+        void ResetProperties()
         {
             HasError = false;
             TempFileCreated = false;
@@ -666,31 +585,33 @@ namespace SGet
         // Start or continue download
         public void Start()
         {
-            if (this.Status == DownloadStatus.Initialized || this.Status == DownloadStatus.Paused
-                || this.Status == DownloadStatus.Queued || this.HasError)
+            if (Status == DownloadStatus.Initialized || Status == DownloadStatus.Paused
+                || Status == DownloadStatus.Queued || HasError)
             {
-                if (!this.SupportsRange && this.DownloadedSize > 0)
+                if (!SupportsRange && DownloadedSize > 0)
                 {
-                    this.StatusString = "Error: Server does not support resume";
-                    this.HasError = true;
-                    this.RaiseDownloadCompleted();
+                    StatusString = "Error: Server does not support resume";
+                    HasError = true;
+                    RaiseDownloadCompleted();
                     return;
                 }
 
-                this.HasError = false;
-                this.Status = DownloadStatus.Waiting;
+                HasError = false;
+                Status = DownloadStatus.Waiting;
                 RaisePropertyChanged("StatusString");
 
                 if (DownloadManager.Instance.ActiveDownloads > Settings.Default.MaxDownloads)
                 {
-                    this.Status = DownloadStatus.Queued;
+                    Status = DownloadStatus.Queued;
                     RaisePropertyChanged("StatusString");
                     return;
                 }
 
                 // Start the download thread
-                DownloadThread = new Thread(new ThreadStart(DownloadFile));
-                DownloadThread.IsBackground = true;
+                DownloadThread = new Thread(new ThreadStart(DownloadFile))
+                {
+                    IsBackground = true
+                };
                 DownloadThread.Start();
             }
         }
@@ -698,13 +619,13 @@ namespace SGet
         // Pause download
         public void Pause()
         {
-            if (this.Status == DownloadStatus.Waiting || this.Status == DownloadStatus.Downloading)
+            if (Status == DownloadStatus.Waiting || Status == DownloadStatus.Downloading)
             {
-                this.Status = DownloadStatus.Pausing;
+                Status = DownloadStatus.Pausing;
             }
-            if (this.Status == DownloadStatus.Queued)
+            if (Status == DownloadStatus.Queued)
             {
-                this.Status = DownloadStatus.Paused;
+                Status = DownloadStatus.Paused;
                 RaisePropertyChanged("StatusString");
             }
         }
@@ -712,36 +633,38 @@ namespace SGet
         // Restart download
         public void Restart()
         {
-            if (this.HasError || this.Status == DownloadStatus.Completed)
+            if (HasError || Status == DownloadStatus.Completed)
             {
-                if (File.Exists(this.TempDownloadPath))
+                if (File.Exists(TempDownloadPath))
                 {
-                    File.Delete(this.TempDownloadPath);
+                    File.Delete(TempDownloadPath);
                 }
-                if (File.Exists(this.DownloadPath))
+                if (File.Exists(DownloadPath))
                 {
-                    File.Delete(this.DownloadPath);
+                    File.Delete(DownloadPath);
                 }
 
                 ResetProperties();
-                this.Status = DownloadStatus.Waiting;
+                Status = DownloadStatus.Waiting;
                 UpdateDownloadDisplay();
 
                 if (DownloadManager.Instance.ActiveDownloads > Settings.Default.MaxDownloads)
                 {
-                    this.Status = DownloadStatus.Queued;
+                    Status = DownloadStatus.Queued;
                     RaisePropertyChanged("StatusString");
                     return;
                 }
 
-                DownloadThread = new Thread(new ThreadStart(DownloadFile));
-                DownloadThread.IsBackground = true;
+                DownloadThread = new Thread(new ThreadStart(DownloadFile))
+                {
+                    IsBackground = true
+                };
                 DownloadThread.Start();
             }
         }
 
         // Download file bytes from the HTTP response stream
-        private void DownloadFile()
+        void DownloadFile()
         {
             HttpWebRequest webRequest = null;
             HttpWebResponse webResponse = null;
@@ -755,46 +678,46 @@ namespace SGet
 
             try
             {
-                if (this.IsBatch && !this.BatchUrlChecked)
+                if (IsBatch && !BatchUrlChecked)
                 {
                     CheckBatchUrl();
-                    if (this.HasError)
+                    if (HasError)
                     {
-                        this.RaiseDownloadCompleted();
+                        RaiseDownloadCompleted();
                         return;
                     }
-                    this.BatchUrlChecked = true;
+                    BatchUrlChecked = true;
                 }
 
                 if (!TempFileCreated)
                 {
                     // Reserve local disk space for the file
                     CreateTempFile();
-                    this.TempFileCreated = true;
+                    TempFileCreated = true;
                 }
 
-                this.lastStartTime = DateTime.UtcNow;
+                lastStartTime = DateTime.UtcNow;
 
-                if (this.Status == DownloadStatus.Waiting)
-                    this.Status = DownloadStatus.Downloading;
+                if (Status == DownloadStatus.Waiting)
+                    Status = DownloadStatus.Downloading;
 
                 // Create request to the server to download the file
-                webRequest = (HttpWebRequest)WebRequest.Create(this.Url);
+                webRequest = (HttpWebRequest)WebRequest.Create(Url);
                 webRequest.Method = "GET";
 
-                if (this.ServerLogin != null)
+                if (ServerLogin != null)
                 {
                     webRequest.PreAuthenticate = true;
-                    webRequest.Credentials = this.ServerLogin;
+                    webRequest.Credentials = ServerLogin;
                 }
                 else
                 {
                     webRequest.Credentials = CredentialCache.DefaultCredentials;
                 }
 
-                if (this.Proxy != null)
+                if (Proxy != null)
                 {
-                    webRequest.Proxy = this.Proxy;
+                    webRequest.Proxy = Proxy;
                 }
                 else
                 {
@@ -815,7 +738,7 @@ namespace SGet
                 long maxBytesPerSecond = 0;
                 if (Settings.Default.EnableSpeedLimit)
                 {
-                    maxBytesPerSecond = (long)((Settings.Default.SpeedLimit * 1024) / DownloadManager.Instance.ActiveDownloads);
+                    maxBytesPerSecond = (Settings.Default.SpeedLimit * 1024) / DownloadManager.Instance.ActiveDownloads;
                 }
                 else
                 {
@@ -824,10 +747,10 @@ namespace SGet
                 throttledStream = new ThrottledStream(responseStream, maxBytesPerSecond);
 
                 // Create memory cache with the specified size
-                downloadCache = new MemoryStream(this.MaxCacheSize);
+                downloadCache = new MemoryStream(MaxCacheSize);
 
                 // Create 1KB buffer
-                byte[] downloadBuffer = new byte[this.BufferSize];
+                byte[] downloadBuffer = new byte[BufferSize];
 
                 int bytesSize = 0;
                 CachedSize = 0;
@@ -840,7 +763,7 @@ namespace SGet
                     {
                         if (Settings.Default.EnableSpeedLimit)
                         {
-                            maxBytesPerSecond = (long)((Settings.Default.SpeedLimit * 1024) / DownloadManager.Instance.ActiveDownloads);
+                            maxBytesPerSecond = (Settings.Default.SpeedLimit * 1024) / DownloadManager.Instance.ActiveDownloads;
                         }
                         else
                         {
@@ -854,19 +777,19 @@ namespace SGet
                     bytesSize = throttledStream.Read(downloadBuffer, 0, downloadBuffer.Length);
 
                     // If the cache is full or the download is paused or completed, write data from the cache to the temporary file
-                    if (this.Status != DownloadStatus.Downloading || bytesSize == 0 || this.MaxCacheSize < CachedSize + bytesSize)
+                    if (Status != DownloadStatus.Downloading || bytesSize == 0 || MaxCacheSize < CachedSize + bytesSize)
                     {
                         // Write data from the cache to the temporary file
                         WriteCacheToFile(downloadCache, CachedSize);
 
-                        this.DownloadedSize += CachedSize;
+                        DownloadedSize += CachedSize;
 
                         // Reset the cache
                         downloadCache.Seek(0, SeekOrigin.Begin);
                         CachedSize = 0;
 
                         // Stop downloading the file if the download is paused or completed
-                        if (this.Status != DownloadStatus.Downloading || bytesSize == 0)
+                        if (Status != DownloadStatus.Downloading || bytesSize == 0)
                         {
                             break;
                         }
@@ -877,9 +800,9 @@ namespace SGet
                     CachedSize += bytesSize;
 
                     receivedBufferCount++;
-                    if (receivedBufferCount == this.BufferCountPerNotification)
+                    if (receivedBufferCount == BufferCountPerNotification)
                     {
-                        this.RaiseDownloadProgressChanged();
+                        RaiseDownloadProgressChanged();
                         receivedBufferCount = 0;
                     }
                 }
@@ -888,55 +811,80 @@ namespace SGet
                 ElapsedTime = ElapsedTime.Add(DateTime.UtcNow - lastStartTime);
 
                 // Change status
-                if (this.Status != DownloadStatus.Deleting)
+                if (Status != DownloadStatus.Deleting)
                 {
-                    if (this.Status == DownloadStatus.Pausing)
+                    if (Status == DownloadStatus.Pausing)
                     {
-                        this.Status = DownloadStatus.Paused;
+                        Status = DownloadStatus.Paused;
                         UpdateDownloadDisplay();
                     }
-                    else if (this.Status == DownloadStatus.Queued)
+                    else if (Status == DownloadStatus.Queued)
                     {
                         UpdateDownloadDisplay();
                     }
                     else
                     {
-                        this.CompletedOn = DateTime.UtcNow;
-                        this.RaiseDownloadCompleted();
+                        CompletedOn = DateTime.UtcNow;
+                        RaiseDownloadCompleted();
                     }
                 }
             }
             catch (Exception ex)
             {
                 // Show error in the status
-                this.StatusString = "Error: " + ex.Message;
-                this.HasError = true;
-                this.RaiseDownloadCompleted();
+                StatusString = $"Error: {ex.Message}";
+                HasError = true;
+                RaiseDownloadCompleted();
             }
             finally
             {
                 // Close the response stream and cache, stop the thread
-                if (responseStream != null)
+                responseStream?.Close();
+                throttledStream?.Close();
+                webResponse?.Close();
+                downloadCache?.Close();
+                DownloadThread?.Abort();
+            }
+        }
+
+        HttpWebRequest CreateWebRequest(string httpMethod, int? timeOut = null)
+        {
+            if (string.IsNullOrWhiteSpace(nameof(httpMethod)))
+                throw new ArgumentNullException(nameof(httpMethod));
+
+            var webRequest = (HttpWebRequest)WebRequest.Create(Url);
+            webRequest.Method = httpMethod;
+            if (timeOut.HasValue)
+            {
+                webRequest.Timeout = timeOut.Value;
+            }
+
+            if (ServerLogin != null)
+            {
+                webRequest.PreAuthenticate = true;
+                webRequest.Credentials = ServerLogin;
+            }
+            else
+            {
+                webRequest.Credentials = CredentialCache.DefaultCredentials;
+            }
+
+            if (Settings.Default.ManualProxyConfig && !string.IsNullOrEmpty(Settings.Default.HttpProxy))
+            {
+                Proxy = new WebProxy
                 {
-                    responseStream.Close();
-                }
-                if (throttledStream != null)
+                    Address = new Uri($"http://{Settings.Default.HttpProxy}:{Settings.Default.ProxyPort}"),
+                    BypassProxyOnLocal = false
+                };
+                if (!string.IsNullOrEmpty(Settings.Default.ProxyUsername) && Settings.Default.ProxyPassword != null)
                 {
-                    throttledStream.Close();
-                }
-                if (webResponse != null)
-                {
-                    webResponse.Close();
-                }
-                if (downloadCache != null)
-                {
-                    downloadCache.Close();
-                }
-                if (DownloadThread != null)
-                {
-                    DownloadThread.Abort();
+                    Proxy.Credentials = new NetworkCredential(Settings.Default.ProxyUsername, Settings.Default.ProxyPassword);
                 }
             }
+
+            webRequest.Proxy = Proxy ?? WebRequest.DefaultWebProxy;
+
+            return webRequest;
         }
 
         #endregion

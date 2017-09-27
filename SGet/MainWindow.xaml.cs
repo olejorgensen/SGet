@@ -18,11 +18,11 @@ namespace SGet
 {
     public partial class MainWindow
     {
-        private List<string> propertyNames;
-        private List<string> propertyValues;
-        private List<PropertyModel> propertiesList;
-        private bool trayExit;
-        private string[] args;
+        List<string> propertyNames;
+        List<string> propertyValues;
+        List<PropertyModel> propertiesList;
+        bool trayExit;
+        string[] args;
 
         #region Constructor
 
@@ -33,8 +33,8 @@ namespace SGet
             args = Environment.GetCommandLineArgs();
             if (!Settings.Default.ShowWindowOnStartup && args.Length != 2)
             {
-                this.ShowInTaskbar = false;
-                this.Visibility = Visibility.Hidden;
+                ShowInTaskbar = false;
+                Visibility = Visibility.Hidden;
             }
 
             // Bind DownloadsList to downloadsGrid
@@ -44,13 +44,15 @@ namespace SGet
             // In case of computer shutdown or restart, save current list of downloads to an XML file
             SystemEvents.SessionEnding += new SessionEndingEventHandler(SystemEvents_SessionEnding);
 
-            propertyNames = new List<string>();
-            propertyNames.Add("URL");
-            propertyNames.Add("Supports Resume");
-            propertyNames.Add("File Type");
-            propertyNames.Add("Download Folder");
-            propertyNames.Add("Average Speed");
-            propertyNames.Add("Total Time");
+            propertyNames = new List<string>
+            {
+                "URL",
+                "Supports Resume",
+                "File Type",
+                "Download Folder",
+                "Average Speed",
+                "Total Time"
+            };
 
             propertyValues = new List<string>();
             propertiesList = new List<PropertyModel>();
@@ -67,44 +69,44 @@ namespace SGet
                 // Clean temporary files in the download directory if no downloads were loaded
                 if (Directory.Exists(Settings.Default.DownloadLocation))
                 {
-                    DirectoryInfo downloadLocation = new DirectoryInfo(Settings.Default.DownloadLocation);
+                    var downloadLocation = new DirectoryInfo(Settings.Default.DownloadLocation);
                     foreach (FileInfo file in downloadLocation.GetFiles())
                     {
-                        if (file.FullName.EndsWith(".tmp"))
+                        if (file.FullName.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase))
                             file.Delete();
                     }
                 }
             }
 
-            this.cbShowGrid.IsChecked = Settings.Default.ShowGrid;
-            this.cbShowProperties.IsChecked = Settings.Default.ShowProperties;
-            this.cbShowStatusBar.IsChecked = Settings.Default.ShowStatusBar;
+            cbShowGrid.IsChecked = Settings.Default.ShowGrid;
+            cbShowProperties.IsChecked = Settings.Default.ShowProperties;
+            cbShowStatusBar.IsChecked = Settings.Default.ShowStatusBar;
 
-            if (this.cbShowGrid.IsChecked.Value)
+            if (cbShowGrid.IsChecked.Value)
             {
-                this.downloadsGrid.GridLinesVisibility = DataGridGridLinesVisibility.All;
+                downloadsGrid.GridLinesVisibility = DataGridGridLinesVisibility.All;
             }
             else
             {
-                this.downloadsGrid.GridLinesVisibility = DataGridGridLinesVisibility.None;
+                downloadsGrid.GridLinesVisibility = DataGridGridLinesVisibility.None;
             }
-            if (this.cbShowProperties.IsChecked.Value)
+            if (cbShowProperties.IsChecked.Value)
             {
-                this.propertiesSplitter.Visibility = System.Windows.Visibility.Visible;
-                this.propertiesPanel.Visibility = System.Windows.Visibility.Visible;
-            }
-            else
-            {
-                this.propertiesSplitter.Visibility = System.Windows.Visibility.Collapsed;
-                this.propertiesPanel.Visibility = System.Windows.Visibility.Collapsed;
-            }
-            if (this.cbShowStatusBar.IsChecked.Value)
-            {
-                this.statusBar.Visibility = System.Windows.Visibility.Visible;
+                propertiesSplitter.Visibility = System.Windows.Visibility.Visible;
+                propertiesPanel.Visibility = System.Windows.Visibility.Visible;
             }
             else
             {
-                this.statusBar.Visibility = System.Windows.Visibility.Collapsed;
+                propertiesSplitter.Visibility = System.Windows.Visibility.Collapsed;
+                propertiesPanel.Visibility = System.Windows.Visibility.Collapsed;
+            }
+            if (cbShowStatusBar.IsChecked.Value)
+            {
+                statusBar.Visibility = System.Windows.Visibility.Visible;
+            }
+            else
+            {
+                statusBar.Visibility = System.Windows.Visibility.Collapsed;
             }
 
             trayExit = false;
@@ -114,19 +116,15 @@ namespace SGet
 
         #region Methods
 
-        private void SetEmptyPropertiesGrid()
+        void SetEmptyPropertiesGrid()
         {
-            if (propertiesList.Count > 0)
-                propertiesList.Clear();
-            for (int i = 0; i < 6; i++)
-            {
-                propertiesList.Add(new PropertyModel(propertyNames[i], String.Empty));
-            }
-
+            propertiesList.Clear();
+            var models = propertyNames.Select(p => new PropertyModel(p, string.Empty)).ToList();
+            propertiesList.AddRange(models);
             propertiesGrid.Items.Refresh();
         }
 
-        private void PauseAllDownloads()
+        void PauseAllDownloads()
         {
             if (downloadsGrid.Items.Count > 0)
             {
@@ -137,14 +135,14 @@ namespace SGet
             }
         }
 
-        private void SaveDownloadsToXml()
+        void SaveDownloadsToXml()
         {
             if (DownloadManager.Instance.TotalDownloads > 0)
             {
                 // Pause downloads
                 PauseAllDownloads();
 
-                XElement root = new XElement("downloads");
+                var root = new XElement("downloads");
 
                 foreach (WebDownloadClient download in DownloadManager.Instance.DownloadsList)
                 {
@@ -156,7 +154,7 @@ namespace SGet
                         password = download.ServerLogin.Password;
                     }
 
-                    XElement xdl = new XElement("download",
+                    var xdl = new XElement("download",
                                         new XElement("file_name", download.FileName),
                                         new XElement("url", download.Url.ToString()),
                                         new XElement("username", username),
@@ -178,21 +176,21 @@ namespace SGet
                     root.Add(xdl);
                 }
 
-                XDocument xd = new XDocument();
+                var xd = new XDocument();
                 xd.Add(root);
                 // Save downloads to XML file
                 xd.Save("Downloads.xml");
             }
         }
 
-        private void LoadDownloadsFromXml()
+        void LoadDownloadsFromXml()
         {
             try
             {
                 if (File.Exists("Downloads.xml"))
                 {
                     // Load downloads from XML file
-                    XElement downloads = XElement.Load("Downloads.xml");
+                    var downloads = XElement.Load("Downloads.xml");
                     if (downloads.HasElements)
                     {
                         IEnumerable<XElement> downloadsList =
@@ -201,15 +199,16 @@ namespace SGet
                         foreach (XElement download in downloadsList)
                         {
                             // Create WebDownloadClient object based on XML data
-                            WebDownloadClient downloadClient = new WebDownloadClient(download.Element("url").Value);
-
-                            downloadClient.FileName = download.Element("file_name").Value;
+                            var downloadClient = new WebDownloadClient(download.Element("url").Value)
+                            {
+                                FileName = download.Element("file_name").Value
+                            };
 
                             downloadClient.DownloadProgressChanged += downloadClient.DownloadProgressChangedHandler;
                             downloadClient.DownloadCompleted += downloadClient.DownloadCompletedHandler;
-                            downloadClient.PropertyChanged += this.PropertyChangedHandler;
-                            downloadClient.StatusChanged += this.StatusChangedHandler;
-                            downloadClient.DownloadCompleted += this.DownloadCompletedHandler;
+                            downloadClient.PropertyChanged += PropertyChangedHandler;
+                            downloadClient.StatusChanged += StatusChangedHandler;
+                            downloadClient.DownloadCompleted += DownloadCompletedHandler;
 
                             string username = download.Element("username").Value;
                             string password = download.Element("password").Value;
@@ -253,8 +252,8 @@ namespace SGet
                         }
 
                         // Create empty XML file
-                        XElement root = new XElement("downloads");
-                        XDocument xd = new XDocument();
+                        var root = new XElement("downloads");
+                        var xd = new XDocument();
                         xd.Add(root);
                         xd.Save("Downloads.xml");
                     }
@@ -266,7 +265,7 @@ namespace SGet
             }
         }
 
-        private void EnableMenuItems(bool enabled)
+        void EnableMenuItems(bool enabled)
         {
             btnDelete.IsEnabled = enabled;
             btnClearCompleted.IsEnabled = enabled;
@@ -276,7 +275,7 @@ namespace SGet
             tcmPauseAll.IsEnabled = enabled;
         }
 
-        private void EnableDataGridMenuItems(bool enabled)
+        void EnableDataGridMenuItems(bool enabled)
         {
             cmStart.IsEnabled = enabled;
             cmPause.IsEnabled = enabled;
@@ -294,34 +293,34 @@ namespace SGet
 
         #region Main Window Event Handlers
 
-        private void mainWindow_ContentRendered(object sender, EventArgs e)
+        void mainWindow_ContentRendered(object sender, EventArgs e)
         {
             // In case the application was started from a web browser and receives command-line arguments
             if (args.Length == 2)
             {
-                if (args[1].StartsWith("http"))
+                if (args[1].StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 {
-                    System.Windows.Clipboard.SetText(args[1]);
+                    Clipboard.SetText(args[1]);
 
-                    NewDownload newDownloadDialog = new NewDownload(this);
+                    var newDownloadDialog = new NewDownload(this);
                     newDownloadDialog.ShowDialog();
                 }
             }
         }
 
-        private void mainWindow_StateChanged(object sender, EventArgs e)
+        void mainWindow_StateChanged(object sender, EventArgs e)
         {
-            if (this.WindowState == System.Windows.WindowState.Minimized && Settings.Default.MinimizeToTray)
+            if (WindowState == WindowState.Minimized && Settings.Default.MinimizeToTray)
             {
-                this.ShowInTaskbar = false;
+                ShowInTaskbar = false;
             }
         }
 
-        private void mainWindow_Closing(object sender, CancelEventArgs e)
+        void mainWindow_Closing(object sender, CancelEventArgs e)
         {
             if (Settings.Default.CloseToTray && !trayExit)
             {
-                this.Hide();
+                Hide();
                 e.Cancel = true;
                 return;
             }
@@ -341,21 +340,21 @@ namespace SGet
             SaveDownloadsToXml();
         }
 
-        private void SystemEvents_SessionEnding(object sender, SessionEndingEventArgs e)
+        void SystemEvents_SessionEnding(object sender, SessionEndingEventArgs e)
         {
             SaveDownloadsToXml();
         }
 
-        private void mainWindow_KeyDown(object sender, KeyEventArgs e)
+        void mainWindow_KeyDown(object sender, KeyEventArgs e)
         {
             // Ctrl + A selects all downloads in the list
             if ((Keyboard.Modifiers == ModifierKeys.Control) && (e.Key == Key.A))
             {
-                this.downloadsGrid.SelectAll();
+                downloadsGrid.SelectAll();
             }
         }
 
-        private void downloadsGrid_KeyUp(object sender, KeyEventArgs e)
+        void downloadsGrid_KeyUp(object sender, KeyEventArgs e)
         {
             // Delete key clears selected downloads
             if (e.Key == Key.Delete)
@@ -364,7 +363,7 @@ namespace SGet
             }
         }
 
-        private void downloadsGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        void downloadsGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (downloadsGrid.SelectedItems.Count > 0)
             {
@@ -414,14 +413,14 @@ namespace SGet
 
         public void PropertyChangedHandler(object sender, PropertyChangedEventArgs e)
         {
-            WebDownloadClient download = (WebDownloadClient)sender;
+            var download = (WebDownloadClient)sender;
             if (e.PropertyName == "AverageSpeedAndTotalTime" && download.Status != DownloadStatus.Deleting)
             {
-                this.Dispatcher.Invoke(new PropertyChangedEventHandler(UpdatePropertiesList), sender, e);
+                Dispatcher.Invoke(new PropertyChangedEventHandler(UpdatePropertiesList), sender, e);
             }
         }
 
-        private void UpdatePropertiesList(object sender, PropertyChangedEventArgs e)
+        void UpdatePropertiesList(object sender, PropertyChangedEventArgs e)
         {
             propertyValues.RemoveRange(4, 2);
             var download = (WebDownloadClient)downloadsGrid.SelectedItem;
@@ -434,17 +433,17 @@ namespace SGet
             propertiesGrid.Items.Refresh();
         }
 
-        private void downloadsGrid_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        void downloadsGrid_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
             dgScrollViewer.ScrollToVerticalOffset(dgScrollViewer.VerticalOffset - e.Delta / 3);
         }
 
-        private void propertiesGrid_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        void propertiesGrid_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
             propertiesScrollViewer.ScrollToVerticalOffset(propertiesScrollViewer.VerticalOffset - e.Delta / 3);
         }
 
-        private void downloadsGrid_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        void downloadsGrid_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
             if (DownloadManager.Instance.TotalDownloads == 0)
             {
@@ -473,34 +472,34 @@ namespace SGet
             }
         }
 
-        private void DownloadsList_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        void DownloadsList_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             if (DownloadManager.Instance.TotalDownloads == 1)
             {
                 EnableMenuItems(true);
-                this.statusBarDownloads.Content = "1 Download";
+                statusBarDownloads.Content = "1 Download";
             }
             else if (DownloadManager.Instance.TotalDownloads > 1)
             {
                 EnableMenuItems(true);
-                this.statusBarDownloads.Content = DownloadManager.Instance.TotalDownloads + " Downloads";
+                statusBarDownloads.Content = $"{DownloadManager.Instance.TotalDownloads} Downloads";
             }
             else
             {
                 EnableMenuItems(false);
-                this.statusBarDownloads.Content = "Ready";
+                statusBarDownloads.Content = "Ready";
             }
         }
 
         public void StatusChangedHandler(object sender, EventArgs e)
         {
-            this.Dispatcher.Invoke(new EventHandler(StatusChanged), sender, e);
+            Dispatcher.Invoke(new EventHandler(StatusChanged), sender, e);
         }
 
-        private void StatusChanged(object sender, EventArgs e)
+        void StatusChanged(object sender, EventArgs e)
         {
             // Start the first download in the queue, if it exists
-            WebDownloadClient dl = (WebDownloadClient)sender;
+            var dl = (WebDownloadClient)sender;
             if (dl.Status == DownloadStatus.Paused || dl.Status == DownloadStatus.Completed
                 || dl.Status == DownloadStatus.Deleted || dl.HasError)
             {
@@ -528,34 +527,34 @@ namespace SGet
             if (active > 0)
             {
                 if (completed == 0)
-                    this.statusBarActive.Content = " (" + active + " Active)";
+                    statusBarActive.Content = $" ({active} Active)";
                 else
-                    this.statusBarActive.Content = " (" + active + " Active, ";
+                    statusBarActive.Content = $" ({active} Active, ";
             }
             else
-                this.statusBarActive.Content = String.Empty;
+                statusBarActive.Content = String.Empty;
 
             if (completed > 0)
             {
                 if (active == 0)
-                    this.statusBarCompleted.Content = " (" + completed + " Completed)";
+                    statusBarCompleted.Content = $" ({completed} Completed)";
                 else
-                    this.statusBarCompleted.Content = completed + " Completed)";
+                    statusBarCompleted.Content = $"{completed} Completed)";
             }
             else
-                this.statusBarCompleted.Content = String.Empty;
+                statusBarCompleted.Content = String.Empty;
         }
 
         public void DownloadCompletedHandler(object sender, EventArgs e)
         {
             if (Settings.Default.ShowBalloonNotification)
             {
-                WebDownloadClient download = (WebDownloadClient)sender;
+                var download = (WebDownloadClient)sender;
 
                 if (download.Status == DownloadStatus.Completed)
                 {
                     string title = "Download Completed";
-                    string text = download.FileName + " has finished downloading.";
+                    string text = $"{download.FileName} has finished downloading.";
 
                     XNotifyIcon.ShowBalloonTip(title, text, BalloonIcon.Info);
                 }
@@ -566,78 +565,80 @@ namespace SGet
 
         #region Click Event Handlers
 
-        private void btnNewDownload_Click(object sender, RoutedEventArgs e)
+        void btnNewDownload_Click(object sender, RoutedEventArgs e)
         {
-            NewDownload newDownloadDialog = new NewDownload(this);
+            var newDownloadDialog = new NewDownload(this);
             newDownloadDialog.ShowDialog();
         }
 
-        private void btnBatchDownload_Click(object sender, RoutedEventArgs e)
+        void btnBatchDownload_Click(object sender, RoutedEventArgs e)
         {
-            BatchDownload batchDownloadDialog = new BatchDownload(this);
+            var batchDownloadDialog = new BatchDownload(this);
             batchDownloadDialog.ShowDialog();
         }
 
-        private void btnDelete_Click(object sender, RoutedEventArgs e)
+        void btnDelete_Click(object sender, RoutedEventArgs e)
         {
             if (downloadsGrid.SelectedItems.Count > 0)
             {
-                MessageBoxResult result = MessageBoxResult.None;
                 if (Settings.Default.ConfirmDelete)
                 {
-                    string message = "Are you sure you want to delete the selected download(s)?";
-                    result = Xceed.Wpf.Toolkit.MessageBox.Show(message, "Warning", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    var result = Xceed.Wpf.Toolkit.MessageBox.Show
+                    (
+                        "Are you sure you want to delete the selected download(s)?",
+                        "Warning",
+                        MessageBoxButton.YesNo, MessageBoxImage.Warning
+                    );
+                    if (result == MessageBoxResult.No)
+                        return;
                 }
 
-                if (result == MessageBoxResult.Yes || !Settings.Default.ConfirmDelete)
+                var selectedDownloads = downloadsGrid.SelectedItems.Cast<WebDownloadClient>();
+                var downloadsToDelete = new List<WebDownloadClient>();
+
+                foreach (WebDownloadClient download in selectedDownloads)
                 {
-                    var selectedDownloads = downloadsGrid.SelectedItems.Cast<WebDownloadClient>();
-                    var downloadsToDelete = new List<WebDownloadClient>();
-
-                    foreach (WebDownloadClient download in selectedDownloads)
+                    if (download.HasError || download.Status == DownloadStatus.Paused || download.Status == DownloadStatus.Queued)
                     {
-                        if (download.HasError || download.Status == DownloadStatus.Paused || download.Status == DownloadStatus.Queued)
+                        if (File.Exists(download.TempDownloadPath))
                         {
-                            if (File.Exists(download.TempDownloadPath))
-                            {
-                                File.Delete(download.TempDownloadPath);
-                            }
-                            download.Status = DownloadStatus.Deleting;
-                            downloadsToDelete.Add(download);
+                            File.Delete(download.TempDownloadPath);
                         }
-                        else if (download.Status == DownloadStatus.Completed)
+                        download.Status = DownloadStatus.Deleting;
+                        downloadsToDelete.Add(download);
+                    }
+                    else if (download.Status == DownloadStatus.Completed)
+                    {
+                        download.Status = DownloadStatus.Deleting;
+                        downloadsToDelete.Add(download);
+                    }
+                    else
+                    {
+                        download.Status = DownloadStatus.Deleting;
+                        while (true)
                         {
-                            download.Status = DownloadStatus.Deleting;
-                            downloadsToDelete.Add(download);
-                        }
-                        else
-                        {
-                            download.Status = DownloadStatus.Deleting;
-                            while (true)
+                            if (download.DownloadThread.ThreadState == System.Threading.ThreadState.Stopped)
                             {
-                                if (download.DownloadThread.ThreadState == System.Threading.ThreadState.Stopped)
+                                if (File.Exists(download.TempDownloadPath))
                                 {
-                                    if (File.Exists(download.TempDownloadPath))
-                                    {
-                                        File.Delete(download.TempDownloadPath);
-                                    }
-                                    downloadsToDelete.Add(download);
-                                    break;
+                                    File.Delete(download.TempDownloadPath);
                                 }
+                                downloadsToDelete.Add(download);
+                                break;
                             }
                         }
                     }
+                }
 
-                    foreach (var download in downloadsToDelete)
-                    {
-                        download.Status = DownloadStatus.Deleted;
-                        DownloadManager.Instance.DownloadsList.Remove(download);
-                    }
+                foreach (var download in downloadsToDelete)
+                {
+                    download.Status = DownloadStatus.Deleted;
+                    DownloadManager.Instance.DownloadsList.Remove(download);
                 }
             }
         }
 
-        private void btnClearCompleted_Click(object sender, RoutedEventArgs e)
+        void btnClearCompleted_Click(object sender, RoutedEventArgs e)
         {
             if (DownloadManager.Instance.TotalDownloads > 0)
             {
@@ -660,7 +661,7 @@ namespace SGet
             }
         }
 
-        private void btnStart_Click(object sender, RoutedEventArgs e)
+        void btnStart_Click(object sender, RoutedEventArgs e)
         {
             if (downloadsGrid.SelectedItems.Count > 0)
             {
@@ -676,7 +677,7 @@ namespace SGet
             }
         }
 
-        private void btnPause_Click(object sender, RoutedEventArgs e)
+        void btnPause_Click(object sender, RoutedEventArgs e)
         {
             if (downloadsGrid.SelectedItems.Count > 0)
             {
@@ -689,13 +690,12 @@ namespace SGet
             }
         }
 
-        private void btnAbout_Click(object sender, RoutedEventArgs e)
+        void btnAbout_Click(object sender, RoutedEventArgs e)
         {
-            About about = new About();
-            about.ShowDialog();
+            new About().ShowDialog();
         }
 
-        private void cmRestart_Click(object sender, RoutedEventArgs e)
+        void cmRestart_Click(object sender, RoutedEventArgs e)
         {
             if (downloadsGrid.SelectedItems.Count > 0)
             {
@@ -708,7 +708,7 @@ namespace SGet
             }
         }
 
-        private void cmOpenFile_Click(object sender, RoutedEventArgs e)
+        void cmOpenFile_Click(object sender, RoutedEventArgs e)
         {
             if (downloadsGrid.SelectedItems.Count == 1)
             {
@@ -720,12 +720,12 @@ namespace SGet
             }
         }
 
-        private void cmOpenDownloadFolder_Click(object sender, RoutedEventArgs e)
+        void cmOpenDownloadFolder_Click(object sender, RoutedEventArgs e)
         {
             if (downloadsGrid.SelectedItems.Count == 1)
             {
                 var download = (WebDownloadClient)downloadsGrid.SelectedItem;
-                int lastIndex = download.DownloadPath.LastIndexOf("\\");
+                int lastIndex = download.DownloadPath.LastIndexOf("\\", StringComparison.Ordinal);
                 string directory = download.DownloadPath.Remove(lastIndex + 1);
                 if (Directory.Exists(directory))
                 {
@@ -734,7 +734,7 @@ namespace SGet
             }
         }
 
-        private void cmStartAll_Click(object sender, RoutedEventArgs e)
+        void cmStartAll_Click(object sender, RoutedEventArgs e)
         {
             if (downloadsGrid.Items.Count > 0)
             {
@@ -748,12 +748,12 @@ namespace SGet
             }
         }
 
-        private void cmPauseAll_Click(object sender, RoutedEventArgs e)
+        void cmPauseAll_Click(object sender, RoutedEventArgs e)
         {
             PauseAllDownloads();
         }
 
-        private void cmSelectAll_Click(object sender, RoutedEventArgs e)
+        void cmSelectAll_Click(object sender, RoutedEventArgs e)
         {
             if (downloadsGrid.Items.Count > 0)
             {
@@ -764,23 +764,23 @@ namespace SGet
             }
         }
 
-        private void cmCopyURLtoClipboard_Click(object sender, RoutedEventArgs e)
+        void cmCopyURLtoClipboard_Click(object sender, RoutedEventArgs e)
         {
             if (downloadsGrid.SelectedItems.Count == 1)
             {
                 var download = (WebDownloadClient)downloadsGrid.SelectedItem;
-                System.Windows.Clipboard.SetText(download.Url.ToString());
+                Clipboard.SetText(download.Url.ToString());
             }
         }
 
-        private void tcmShowMainWindow_Click(object sender, RoutedEventArgs e)
+        void tcmShowMainWindow_Click(object sender, RoutedEventArgs e)
         {
-            this.ShowInTaskbar = true;
-            this.Visibility = Visibility.Visible;
-            this.WindowState = System.Windows.WindowState.Normal;
+            ShowInTaskbar = true;
+            Visibility = Visibility.Visible;
+            WindowState = System.Windows.WindowState.Normal;
         }
 
-        private void tcmExit_Click(object sender, RoutedEventArgs e)
+        void tcmExit_Click(object sender, RoutedEventArgs e)
         {
             // Close all windows
             trayExit = true;
@@ -788,57 +788,55 @@ namespace SGet
                 App.Current.Windows[intCounter].Close();
         }
 
-        private void btnSetLimits_Click(object sender, RoutedEventArgs e)
+        void btnSetLimits_Click(object sender, RoutedEventArgs e)
         {
-            Preferences limits = new Preferences(true);
-            limits.ShowDialog();
+            new Preferences(true).ShowDialog();
         }
 
-        private void btnPreferences_Click(object sender, RoutedEventArgs e)
+        void btnPreferences_Click(object sender, RoutedEventArgs e)
         {
-            Preferences preferences = new Preferences(false);
-            preferences.ShowDialog();
+            new Preferences(false).ShowDialog();
         }
 
-        private void cbShowGrid_Click(object sender, RoutedEventArgs e)
+        void cbShowGrid_Click(object sender, RoutedEventArgs e)
         {
             if (cbShowGrid.IsChecked.Value)
             {
-                this.downloadsGrid.GridLinesVisibility = DataGridGridLinesVisibility.All;
+                downloadsGrid.GridLinesVisibility = DataGridGridLinesVisibility.All;
             }
             else
             {
-                this.downloadsGrid.GridLinesVisibility = DataGridGridLinesVisibility.None;
+                downloadsGrid.GridLinesVisibility = DataGridGridLinesVisibility.None;
             }
             Settings.Default.ShowGrid = cbShowGrid.IsChecked.Value;
             Settings.Default.Save();
         }
 
-        private void cbShowProperties_Click(object sender, RoutedEventArgs e)
+        void cbShowProperties_Click(object sender, RoutedEventArgs e)
         {
             if (cbShowProperties.IsChecked.Value)
             {
-                this.propertiesSplitter.Visibility = Visibility.Visible;
-                this.propertiesPanel.Visibility = Visibility.Visible;
+                propertiesSplitter.Visibility = Visibility.Visible;
+                propertiesPanel.Visibility = Visibility.Visible;
             }
             else
             {
-                this.propertiesSplitter.Visibility = Visibility.Collapsed;
-                this.propertiesPanel.Visibility = Visibility.Collapsed;
+                propertiesSplitter.Visibility = Visibility.Collapsed;
+                propertiesPanel.Visibility = Visibility.Collapsed;
             }
             Settings.Default.ShowProperties = cbShowProperties.IsChecked.Value;
             Settings.Default.Save();
         }
 
-        private void cbShowStatusBar_Click(object sender, RoutedEventArgs e)
+        void cbShowStatusBar_Click(object sender, RoutedEventArgs e)
         {
             if (cbShowStatusBar.IsChecked.Value)
             {
-                this.statusBar.Visibility = Visibility.Visible;
+                statusBar.Visibility = Visibility.Visible;
             }
             else
             {
-                this.statusBar.Visibility = Visibility.Collapsed;
+                statusBar.Visibility = Visibility.Collapsed;
             }
             Settings.Default.ShowStatusBar = cbShowStatusBar.IsChecked.Value;
             Settings.Default.Save();

@@ -1,23 +1,15 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 
 namespace SGet
 {
     public class DownloadManager
     {
-        // Class instance, used to access non-static members
-        private static DownloadManager instance = new DownloadManager();
+        public static DownloadManager Instance { get; } = new DownloadManager();
 
-        public static DownloadManager Instance
-        {
-            get
-            {
-                return instance;
-            }
-        }
-
-        private static NumberFormatInfo numberFormat = NumberFormatInfo.InvariantInfo;
+        static NumberFormatInfo numberFormat = NumberFormatInfo.InvariantInfo;
 
         // Collection which contains all download clients, bound to the DataGrid control
         public ObservableCollection<WebDownloadClient> DownloadsList = new ObservableCollection<WebDownloadClient>();
@@ -29,13 +21,11 @@ namespace SGet
         {
             get
             {
-                int active = 0;
-                foreach (WebDownloadClient d in DownloadsList)
-                {
-                    if (!d.HasError)
-                        if (d.Status == DownloadStatus.Waiting || d.Status == DownloadStatus.Downloading)
-                            active++;
-                }
+                var active = DownloadsList
+                    .OfType<WebDownloadClient>()
+                    .Where(d => !d.HasError && (d.Status == DownloadStatus.Waiting || d.Status == DownloadStatus.Downloading))
+                    .ToList()
+                    .Count;
                 return active;
             }
         }
@@ -45,12 +35,11 @@ namespace SGet
         {
             get
             {
-                int completed = 0;
-                foreach (WebDownloadClient d in DownloadsList)
-                {
-                    if (d.Status == DownloadStatus.Completed)
-                        completed++;
-                }
+                var completed = DownloadsList
+                    .OfType<WebDownloadClient>()
+                    .Where(d => d.Status == DownloadStatus.Completed)
+                    .ToList()
+                    .Count;
                 return completed;
             }
         }
@@ -71,34 +60,32 @@ namespace SGet
         // Format file size or downloaded size string
         public static string FormatSizeString(long byteSize)
         {
-            double kiloByteSize = (double)byteSize / 1024D;
+            double kiloByteSize = byteSize / 1024D;
             double megaByteSize = kiloByteSize / 1024D;
             double gigaByteSize = megaByteSize / 1024D;
 
             if (byteSize < 1024)
                 return String.Format(numberFormat, "{0} B", byteSize);
-            else if (byteSize < 1048576)
+            if (byteSize < 1048576)
                 return String.Format(numberFormat, "{0:0.00} kB", kiloByteSize);
-            else if (byteSize < 1073741824)
+            if (byteSize < 1073741824)
                 return String.Format(numberFormat, "{0:0.00} MB", megaByteSize);
-            else
-                return String.Format(numberFormat, "{0:0.00} GB", gigaByteSize);
+            return String.Format(numberFormat, "{0:0.00} GB", gigaByteSize);
         }
 
         // Format download speed string
         public static string FormatSpeedString(int speed)
         {
-            float kbSpeed = (float)speed / 1024F;
+            float kbSpeed = speed / 1024F;
             float mbSpeed = kbSpeed / 1024F;
 
             if (speed <= 0)
                 return String.Empty;
-            else if (speed < 1024)
+            if (speed < 1024)
                 return speed.ToString() + " B/s";
-            else if (speed < 1048576)
+            if (speed < 1048576)
                 return kbSpeed.ToString("#.00", numberFormat) + " kB/s";
-            else
-                return mbSpeed.ToString("#.00", numberFormat) + " MB/s";
+            return mbSpeed.ToString("#.00", numberFormat) + " MB/s";
         }
 
         // Format time span string so it can display values of more than 24 hours
