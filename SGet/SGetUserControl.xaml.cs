@@ -1,7 +1,6 @@
 ﻿using Hardcodet.Wpf.TaskbarNotification;
 using Microsoft.Win32;
-using SGet.Core;
-using SGet.Core.Properties;
+using SGet.Properties;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -17,17 +16,24 @@ using System.Xml.Linq;
 
 namespace SGet
 {
-    public partial class MainWindow
+    /// <summary>
+    /// Interaction logic for SGetUserControl.xaml
+    /// </summary>
+    public partial class SGetUserControl : UserControl
     {
+        #region Fields
+        
         List<string> propertyNames;
         List<string> propertyValues;
         List<PropertyModel> propertiesList;
         bool trayExit;
         string[] args;
 
+        #endregion
+
         #region Constructor
 
-        public MainWindow()
+        public SGetUserControl()
         {
             InitializeComponent();
 
@@ -156,24 +162,24 @@ namespace SGet
                     }
 
                     var xdl = new XElement("download",
-                        new XElement("file_name", download.FileName),
-                        new XElement("url", download.Url.ToString()),
-                        new XElement("username", username),
-                        new XElement("password", password),
-                        new XElement("temp_path", download.TempDownloadPath),
-                        new XElement("file_size", download.FileSize),
-                        new XElement("downloaded_size", download.DownloadedSize),
-                        new XElement("status", download.Status.ToString()),
-                        new XElement("status_text", download.StatusText),
-                        new XElement("total_time", download.TotalElapsedTime.ToString()),
-                        new XElement("added_on", download.AddedOn.ToString()),
-                        new XElement("completed_on", download.CompletedOn.ToString()),
-                        new XElement("supports_resume", download.SupportsRange.ToString()),
-                        new XElement("has_error", download.HasError.ToString()),
-                        new XElement("open_file", download.OpenFileOnCompletion.ToString()),
-                        new XElement("temp_created", download.TempFileCreated.ToString()),
-                        new XElement("is_batch", download.IsBatch.ToString()),
-                        new XElement("url_checked", download.BatchUrlChecked.ToString()));
+                                        new XElement("file_name", download.FileName),
+                                        new XElement("url", download.Url.ToString()),
+                                        new XElement("username", username),
+                                        new XElement("password", password),
+                                        new XElement("temp_path", download.TempDownloadPath),
+                                        new XElement("file_size", download.FileSize),
+                                        new XElement("downloaded_size", download.DownloadedSize),
+                                        new XElement("status", download.Status.ToString()),
+                                        new XElement("status_text", download.StatusText),
+                                        new XElement("total_time", download.TotalElapsedTime.ToString()),
+                                        new XElement("added_on", download.AddedOn.ToString()),
+                                        new XElement("completed_on", download.CompletedOn.ToString()),
+                                        new XElement("supports_resume", download.SupportsRange.ToString()),
+                                        new XElement("has_error", download.HasError.ToString()),
+                                        new XElement("open_file", download.OpenFileOnCompletion.ToString()),
+                                        new XElement("temp_created", download.TempFileCreated.ToString()),
+                                        new XElement("is_batch", download.IsBatch.ToString()),
+                                        new XElement("url_checked", download.BatchUrlChecked.ToString()));
                     root.Add(xdl);
                 }
 
@@ -844,5 +850,6 @@ namespace SGet
         }
 
         #endregion
+
     }
 }

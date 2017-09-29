@@ -1,4 +1,5 @@
-﻿using SGet.Properties;
+﻿using SGet.Core;
+using SGet.Core.Properties;
 using System;
 using System.Collections.Generic;
 using System.IO;

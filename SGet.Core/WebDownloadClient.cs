@@ -1,4 +1,4 @@
-﻿using SGet.Properties;
+﻿using SGet.Core.Properties;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,9 +8,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading;
-using System.Windows;
 
-namespace SGet
+namespace SGet.Core
 {
     public class WebDownloadClient : INotifyPropertyChanged
     {
@@ -427,24 +426,14 @@ namespace SGet
                     FileSize = response.ContentLength;
                     if (FileSize <= 0)
                     {
-                        Xceed.Wpf.Toolkit.MessageBox.Show
-                        (
-                            "The requested file does not exist!",
-                            "Error",
-                            MessageBoxButton.OK, MessageBoxImage.Error
-                        );
+                        StatusString = "The requested file does not exist!";
                         HasError = true;
                     }
                 }
             }
             catch (Exception)
             {
-                Xceed.Wpf.Toolkit.MessageBox.Show
-                (
-                    "There was an error while getting the file information. Please make sure the URL is accessible.",
-                    "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error
-                );
+                StatusString = "There was an error while getting the file information. Please make sure the URL is accessible.";
                 HasError = true;
             }
         }

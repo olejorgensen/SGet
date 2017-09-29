@@ -1,5 +1,4 @@
-﻿
-namespace SGet
+﻿namespace SGet.Core
 {
     public enum DownloadStatus
     {

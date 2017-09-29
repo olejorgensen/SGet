@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
-using SGet.Properties;
+using SGet.Core;
+using SGet.Core.Properties;
 using System;
 using System.Reflection;
 using System.Windows;

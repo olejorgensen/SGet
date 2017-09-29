@@ -3,7 +3,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 
-namespace SGet
+namespace SGet.Core
 {
     public class DownloadManager
     {
@@ -91,16 +91,9 @@ namespace SGet
         // Format time span string so it can display values of more than 24 hours
         public static string FormatTimeSpanString(TimeSpan span)
         {
-            string hours = ((int)span.TotalHours).ToString();
-            string minutes = span.Minutes.ToString();
-            string seconds = span.Seconds.ToString();
-            if ((int)span.TotalHours < 10)
-                hours = "0" + hours;
-            if (span.Minutes < 10)
-                minutes = "0" + minutes;
-            if (span.Seconds < 10)
-                seconds = "0" + seconds;
-
+            string hours = ((int)span.TotalHours).ToString("00");
+            string minutes = span.Minutes.ToString("00");
+            string seconds = span.Seconds.ToString("00");
             return String.Format("{0}:{1}:{2}", hours, minutes, seconds);
         }
 

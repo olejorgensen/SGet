@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 
-namespace SGet
+namespace SGet.Core
 {
     /// <summary>
     /// Class for streaming data with throttling support.
